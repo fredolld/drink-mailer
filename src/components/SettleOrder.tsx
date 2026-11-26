@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,9 +9,39 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ClipboardPaste, Eye, Save } from "lucide-react";
+import { Bookmark, ClipboardPaste, Eye, Save } from "lucide-react";
 
 const ORDERS_API = "/api/orders";
+const NIDIN_ORIGIN = "https://order.nidin.shop";
+const MSG_READY = "drink-mailer-ready";
+const MSG_ORDER = "nidin-order";
+
+/**
+ * 產生「一鍵書籤」的程式碼：在你訂的訂單明細頁執行，
+ * 用該頁現成的登入狀態抓訂單 JSON，再開啟本系統並把 JSON 傳過來。
+ * 登入憑證只在你訂的頁面內使用，不會傳到本系統。
+ */
+function buildBookmarklet(appOrigin: string) {
+  const code = `(async()=>{
+const APP=${JSON.stringify(appOrigin)};
+const m=location.pathname.match(/orderListInfo\\/(\\d+)/);
+if(location.origin!==${JSON.stringify(NIDIN_ORIGIN)}||!m){alert('請先打開「你訂」的訂單明細頁，再按這個書籤');return}
+const tk=localStorage.getItem('Nidin_token'),uid=localStorage.getItem('Nidin_userId');
+if(!tk||!uid){alert('請先登入「你訂」');return}
+let ready=false,data=null;
+const w=window.open(APP+'/?tab=settle','_blank');
+if(!w){alert('瀏覽器擋住了新分頁，請允許彈出視窗後再試');return}
+const send=()=>{if(ready&&data)w.postMessage({type:${JSON.stringify(MSG_ORDER)},json:data},APP)};
+addEventListener('message',e=>{if(e.origin===APP&&e.data&&e.data.type===${JSON.stringify(MSG_READY)}){ready=true;send()}});
+try{
+const r=await fetch('https://loctw-service-api.nidin.shop/shopper/v2/order/'+m[1]+'/info',{headers:{'Accept':'application/json','MC-API-Token':tk,'MC-API-User':uid}});
+const j=await r.json();
+if(!r.ok||!j||!j.order_info)throw new Error((j&&j.message)||('HTTP '+r.status));
+data=j;send();
+}catch(e){alert('抓取訂單失敗：'+e.message)}
+})()`;
+  return "javascript:" + encodeURIComponent(code.split("\n").join(""));
+}
 
 type Line = {
   contact: string;
@@ -53,14 +83,43 @@ export default function SettleOrder() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
-  async function call(confirm: boolean, map = nameMap) {
+  const bookmarkRef = useRef<HTMLAnchorElement>(null);
+
+  // React 不允許在 JSX 直接寫 javascript: 連結，改在掛載後設定
+  useEffect(() => {
+    bookmarkRef.current?.setAttribute("href", buildBookmarklet(window.location.origin));
+  }, []);
+
+  // 接收「一鍵書籤」從你訂頁面傳來的訂單 JSON
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.origin !== NIDIN_ORIGIN || !e.data || e.data.type !== MSG_ORDER) return;
+      const text = JSON.stringify(e.data.json);
+      setJson(text);
+      setNameMap({});
+      setForce(false);
+      setPreview(null);
+      call(false, {}, text);
+    }
+    window.addEventListener("message", onMessage);
+    // 告訴開啟本頁的你訂分頁：可以把資料傳過來了
+    try {
+      window.opener?.postMessage({ type: MSG_READY }, NIDIN_ORIGIN);
+    } catch {
+      /* 不是由書籤開啟 */
+    }
+    return () => window.removeEventListener("message", onMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function call(confirm: boolean, map = nameMap, jsonText = json) {
     setBusy(true);
     setMessage(null);
     try {
       const res = await fetch(ORDERS_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ json, nameMap: map, storeName, confirm, force }),
+        body: JSON.stringify({ json: jsonText, nameMap: map, storeName, confirm, force }),
       });
       const data: Preview = await res.json();
       if (!data.ok) throw new Error(data.message || "處理失敗");
@@ -113,8 +172,28 @@ export default function SettleOrder() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="rounded-2xl border bg-slate-50 p-3 text-sm space-y-2">
+          <div className="font-medium">一鍵帶入（建議）</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground">第一次使用：把這個按鈕拖到瀏覽器的書籤列</span>
+            <a
+              ref={bookmarkRef}
+              onClick={(e) => e.preventDefault()}
+              draggable
+              className="inline-flex items-center rounded-md border bg-background px-3 py-1 font-medium shadow-sm cursor-grab"
+              title="拖到書籤列，不是用點的"
+            >
+              <Bookmark className="mr-1 h-4 w-4" />
+              飲料結單
+            </a>
+          </div>
+          <div className="text-muted-foreground">
+            之後結單時，在「你訂」的訂單明細頁按一下這個書籤，就會自動開啟本頁並帶入訂單。
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <Label htmlFor="order-json">訂單 JSON</Label>
+          <Label htmlFor="order-json">訂單 JSON（手動貼上）</Label>
           <Textarea
             id="order-json"
             className="h-40 font-mono text-xs"
