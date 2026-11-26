@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vs/
+
+# 環境變數範本可以進版控
+!.env.example

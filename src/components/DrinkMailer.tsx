@@ -31,8 +31,9 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // ---- CONFIG ----
-// 將這個常數換成你部署好的 Google Apps Script Web App URL
-const APPS_SCRIPT_BASE = "https://script.google.com/macros/s/AKfycbwmVzoPJVAQVDg8Ee-Rn9BUZp_pKBy3VvvYfeNtHhkEeeExEcBeSa-RvnwwoVNuuEC_/exec";
+// 後端已改為本專案的 Next.js API routes（不再使用 Google Apps Script）
+const RECIPIENTS_API = "/api/recipients";
+const SEND_MAIL_API = "/api/send-mail";
 
 // 部門下拉選單用的『全部部門』值（不可為空字串，避免 shadcn/radix Select 報錯）
 const DEPT_ALL_VALUE = "ALL";
@@ -41,8 +42,8 @@ const DEPT_ALL_VALUE = "ALL";
 const MANAGER_NONE_VALUE = "__NONE__";
 
 // 後端 API 規格：
-// GET  `${APPS_SCRIPT_BASE}?fn=getRecipients&dept=xxx&keyword=yyy`
-// POST `${APPS_SCRIPT_BASE}`  body: { fn:'sendMail', payload: {...} }
+// GET  /api/recipients?dept=xxx&keyword=yyy
+// POST /api/send-mail   body: { payload: {...} }
 
 // ---- Types ----
 export type Recipient = { name: string; email: string; dept?: string; active?: boolean; note?: string; phone?: string };
@@ -117,9 +118,10 @@ export default function DrinkMailer() {
     setLoading(true);
     setMessage("");
     try {
-      const url = buildGetRecipientsUrl(APPS_SCRIPT_BASE, opts?.dept, opts?.keyword);
-      const res = await fetch(url.toString());
+      const url = buildGetRecipientsUrl(RECIPIENTS_API, opts?.dept, opts?.keyword);
+      const res = await fetch(url.pathname + url.search);
       const data: ApiResponse = await res.json();
+      if (!res.ok) throw new Error(data?.message || "讀取名單失敗");
       const list: Recipient[] = data.list || [];
       setRecipients(list);
       setAllDepts(data.allDepts || []);
@@ -206,9 +208,10 @@ export default function DrinkMailer() {
         timestamp: new Date().toISOString()
       };
 
-      const res = await fetch(APPS_SCRIPT_BASE, {
+      const res = await fetch(SEND_MAIL_API, {
         method: "POST",
-        body: JSON.stringify({ fn: "sendmail", payload }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload }),
       });
 
       const data: ApiResponse = await res.json();
@@ -316,7 +319,7 @@ export default function DrinkMailer() {
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {managerOptions.length === 0
-                    ? "名單中尚無電話資料：請先在 Recipients 表填好 Phone 欄並重新部署後端。"
+                    ? "名單中尚無電話資料：請先在 Recipients 表填好 Phone 欄。"
                     : "必填：請選擇負責人；選後會帶出電話供結單填寫，通知信只顯示姓名、不外洩電話。"}
                 </p>
               )}
@@ -500,8 +503,8 @@ function DateTimePicker({ value, onChange }: { value?: Date; onChange: (d?: Date
  * - 另外驗證 payload 不包含已移除欄位（pickup/location）。
  **********************/
 export function buildGetRecipientsUrl(base: string, dept?: string, keyword?: string) {
-  const url = new URL(base);
-  url.searchParams.set("fn", "getRecipients");
+  // base 是相對路徑，補一個假的 origin 才能用 URL 物件組參數
+  const url = new URL(base, "http://localhost");
   if (dept && dept !== DEPT_ALL_VALUE) url.searchParams.set("dept", dept);
   if (keyword) url.searchParams.set("keyword", keyword);
   return url;
@@ -521,19 +524,19 @@ export function buildPayloadForTest(values: { vendor: string; link: string; dead
 (function runDevTests() {
   try {
     // Test 1: ALL 不應帶出 dept 參數
-    const u1 = buildGetRecipientsUrl(APPS_SCRIPT_BASE, DEPT_ALL_VALUE, "");
+    const u1 = buildGetRecipientsUrl(RECIPIENTS_API, DEPT_ALL_VALUE, "");
     console.assert(!u1.searchParams.has("dept"), "[Test1] ALL should not include dept param");
 
     // Test 2: 空或未定義不應帶出 dept 參數
-    const u2 = buildGetRecipientsUrl(APPS_SCRIPT_BASE, undefined, "");
+    const u2 = buildGetRecipientsUrl(RECIPIENTS_API, undefined, "");
     console.assert(!u2.searchParams.has("dept"), "[Test2] undefined dept should not include param");
 
     // Test 3: 指定 RD 應包含 dept=RD
-    const u3 = buildGetRecipientsUrl(APPS_SCRIPT_BASE, "RD", "");
+    const u3 = buildGetRecipientsUrl(RECIPIENTS_API, "RD", "");
     console.assert(u3.searchParams.get("dept") === "RD", "[Test3] dept=RD should be present");
 
     // Test 4: keyword 參數應被帶出
-    const u4 = buildGetRecipientsUrl(APPS_SCRIPT_BASE, DEPT_ALL_VALUE, "abc");
+    const u4 = buildGetRecipientsUrl(RECIPIENTS_API, DEPT_ALL_VALUE, "abc");
     console.assert(u4.searchParams.get("keyword") === "abc", "[Test4] keyword should be present");
 
     // Test 5: sentinel 不可為空字串
