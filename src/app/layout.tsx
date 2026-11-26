@@ -58,7 +58,8 @@ export default function RootLayout({
   return (
     <html lang="zh-Hant">
       <body
-        className={`${plex.variable} ${plexMono.variable} ${notoTC.variable} antialiased`}
+        // font-sans 要寫在這裡：字型變數定義在 body 上，寫在 html 層會解析不到而退回系統字型
+        className={`${plex.variable} ${plexMono.variable} ${notoTC.variable} font-sans antialiased`}
       >
         {children}
       </body>
