@@ -98,6 +98,47 @@ export async function appendRows(sheet: string, range: string, rows: (string | n
   await client().request({ url, method: "POST", data: { values: rows } });
 }
 
+/** 取得分頁的數字 ID（插入列需要） */
+async function sheetGid(sheet: string): Promise<number> {
+  const url = `${API}/${spreadsheetId()}?fields=sheets.properties(sheetId,title)`;
+  const res = await client().request<{ sheets?: { properties?: { sheetId?: number; title?: string } }[] }>({ url });
+  const hit = (res.data.sheets || []).find((s) => s.properties?.title === sheet);
+  if (!hit || typeof hit.properties?.sheetId !== "number") throw new Error(`找不到工作表：${sheet}`);
+  return hit.properties.sheetId;
+}
+
+/**
+ * 把多列插入到標題列正下方（第 2 列起），讓最新資料在最上面。
+ * 傳入的順序即為表上由上到下的順序。
+ */
+export async function insertRowsAtTop(sheet: string, rows: (string | number)[][]): Promise<void> {
+  if (rows.length === 0) return;
+  const gid = await sheetGid(sheet);
+  const batchUrl = `${API}/${spreadsheetId()}:batchUpdate`;
+  const dim = { sheetId: gid, dimension: "ROWS", startIndex: 1, endIndex: 1 + rows.length };
+
+  // 先插入空白列；inheritFromBefore=false 表示格式沿用下方的資料列，而不是標題列
+  await client().request({
+    url: batchUrl,
+    method: "POST",
+    data: { requests: [{ insertDimension: { range: dim, inheritFromBefore: false } }] },
+  });
+
+  try {
+    const width = Math.max(...rows.map((r) => r.length));
+    const lastCol = String.fromCharCode(64 + width);
+    const range = a1(sheet, `A2:${lastCol}${1 + rows.length}`);
+    const url = `${API}/${spreadsheetId()}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+    await client().request({ url, method: "PUT", data: { values: rows } });
+  } catch (e) {
+    // 寫值失敗：把剛插入的空白列刪掉，避免帳本留下空列
+    await client()
+      .request({ url: batchUrl, method: "POST", data: { requests: [{ deleteDimension: { range: dim } }] } })
+      .catch((e2) => console.error("rollback inserted rows failed", e2));
+    throw e;
+  }
+}
+
 /** 讀整張分頁並依第一列標題轉成物件陣列 */
 export async function readTable(sheet: string): Promise<Record<string, string>[]> {
   const vals = await readRange(sheet, "A:Z");

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SHEETS, appendRows, fmtRawStamp, readRange } from "@/lib/server/sheets";
+import { SHEETS, fmtRawStamp, insertRowsAtTop, readRange } from "@/lib/server/sheets";
 import { loadRecipients } from "@/lib/server/recipients";
 import { PLASTIC_ACCOUNT, normName, parseOrder } from "@/lib/order";
 
@@ -89,9 +89,10 @@ export async function POST(req: NextRequest) {
 
     // 欄位：店名 / 外拋時間 / 訂購人姓名 / 品項 / 客製 / 價格
     const rows = lines.map((l) => [storeName, stamp, l.name as string, l.item, l.options, l.price]);
-    await appendRows(rawSheet, "A:F", rows);
+    // 插在標題列正下方，最新的訂單永遠在最上面
+    await insertRowsAtTop(rawSheet, rows);
 
-    return NextResponse.json({ ...preview, written: true, message: `已寫入 ${rows.length} 筆到 ${rawSheet}，合計 NT$${order.total}` });
+    return NextResponse.json({ ...preview, written: true, message: `已寫入 ${rows.length} 筆到 ${rawSheet} 最上方，合計 NT$${order.total}` });
   } catch (e) {
     console.error("POST /api/orders", e);
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : String(e) }, { status: 500 });
