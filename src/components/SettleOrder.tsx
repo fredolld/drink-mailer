@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -164,15 +163,15 @@ export default function SettleOrder() {
     !!preview && !done && !busy && stillUnmatched.length === 0 && !needStore && (preview.duplicateCount === 0 || force);
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle>結單記帳</CardTitle>
-        <CardDescription>
-          飲料結單後，把「你訂」訂單頁的回應 JSON 整包貼上，確認預覽無誤再寫入試算表。
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-2xl border bg-slate-50 p-3 text-sm space-y-2">
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">結單記帳</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          飲料結單後帶入「你訂」的訂單，確認預覽無誤再寫入試算表。
+        </p>
+      </div>
+      <section className="space-y-4 rounded-lg border bg-card p-5">
+        <div className="space-y-2 rounded-md border border-primary/25 bg-accent/50 p-3 text-sm">
           <div className="font-medium">一鍵帶入（建議）</div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground">第一次使用：把這個按鈕拖到瀏覽器的書籤列</span>
@@ -215,7 +214,7 @@ export default function SettleOrder() {
             {busy && !preview ? "解析中…" : "預覽"}
           </Button>
           {message && (
-            <div className={cn("text-sm", message.ok ? "text-green-600" : "text-red-600")}>{message.text}</div>
+            <div className={cn("text-sm", message.ok ? "text-ok" : "text-destructive")}>{message.text}</div>
           )}
         </div>
 
@@ -241,7 +240,7 @@ export default function SettleOrder() {
               </div>
             )}
 
-            <div className="border rounded-2xl p-2 max-h-[420px] overflow-auto">
+            <div className="max-h-[420px] overflow-auto rounded-md border px-3">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-muted-foreground">
@@ -297,7 +296,7 @@ export default function SettleOrder() {
 
             <ul className="space-y-1 text-sm">
               {preview.expectedTotal !== null && (
-                <li className={totalOk ? "text-green-600" : "text-red-600"}>
+                <li className={totalOk ? "text-ok" : "text-destructive"}>
                   {totalOk
                     ? `合計與你訂的訂單總額相符（NT$${preview.expectedTotal}）`
                     : `合計 NT$${preview.total} 與你訂的訂單總額 NT$${preview.expectedTotal} 不符，請檢查`}
@@ -309,7 +308,7 @@ export default function SettleOrder() {
                 </li>
               )}
               {stillUnmatched.length > 0 && !done && (
-                <li className="text-red-600">
+                <li className="text-destructive">
                   以下暱稱在 Summary 找不到對應姓名，請在表格內指定：{stillUnmatched.join("、")}
                 </li>
               )}
@@ -336,7 +335,7 @@ export default function SettleOrder() {
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </section>
+    </div>
   );
 }

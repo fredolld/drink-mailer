@@ -9,8 +9,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex), var(--font-noto-tc), "Microsoft JhengHei", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --color-ink: var(--ink);
+  --color-signal: var(--signal);
+  --color-ok: var(--ok);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,26 +49,33 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/*
+ * 配色取自配電盤：深藍盤面、鈷藍為主要操作色、
+ * 琥珀與綠色只當「指示燈」用（待處理 / 就緒），不做裝飾。
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --radius: 0.4rem;
+  --ink: #0e2238;
+  --signal: #e8a013;
+  --ok: #17875a;
+  --background: #f2f5f9;
+  --foreground: #0e2238;
+  --card: #ffffff;
+  --card-foreground: #0e2238;
+  --popover: #ffffff;
+  --popover-foreground: #0e2238;
+  --primary: #1456d9;
+  --primary-foreground: #ffffff;
+  --secondary: #e4eaf2;
+  --secondary-foreground: #0e2238;
+  --muted: #e9eef4;
+  --muted-foreground: #51627a;
+  --accent: #e2ebfb;
+  --accent-foreground: #0e2238;
+  --destructive: #c93434;
+  --border: #d3dce7;
+  --input: #c2cedc;
+  --ring: #1456d9;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -121,5 +131,11 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition-duration: 0s !important;
+      animation-duration: 0s !important;
+    }
   }
 }

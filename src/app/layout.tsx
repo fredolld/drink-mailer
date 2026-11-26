@@ -1,15 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono, Noto_Sans_TC } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// 英數用 IBM Plex Sans（工程儀表感、數字清楚），中文用 Noto Sans TC
+const plex = IBM_Plex_Sans({
+  variable: "--font-plex",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
+});
+
+// 中文字型檔很大，不預先載入，交給瀏覽器依實際用到的字分段下載
+const notoTC = Noto_Sans_TC({
+  variable: "--font-noto-tc",
+  weight: ["400", "500", "700"],
+  preload: false,
 });
 
 // 🔥 改這裡
@@ -48,7 +58,7 @@ export default function RootLayout({
   return (
     <html lang="zh-Hant">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${plex.variable} ${plexMono.variable} ${notoTC.variable} antialiased`}
       >
         {children}
       </body>
