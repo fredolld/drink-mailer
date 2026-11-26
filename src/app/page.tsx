@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DrinkMailer from "@/components/DrinkMailer";
 import SettleOrder from "@/components/SettleOrder";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,10 @@ type Tab = "mail" | "settle";
 
 export default function Page() {
   const [tab, setTab] = useState<Tab>("mail");
+  // 網址帶 ?tab=settle 時直接開結單頁（一鍵書籤會用到）
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "settle") setTab("settle");
+  }, []);
   return (
     <>
       <nav className="container mx-auto px-6 pt-6 flex gap-2" aria-label="功能切換">
