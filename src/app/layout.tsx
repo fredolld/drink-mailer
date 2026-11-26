@@ -1,26 +1,11 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono, Noto_Sans_TC } from "next/font/google";
 import "./globals.css";
 
-// 英數用 IBM Plex Sans（工程儀表感、數字清楚），中文用 Noto Sans TC
-const plex = IBM_Plex_Sans({
-  variable: "--font-plex",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-});
-
-// 中文字型檔很大，不預先載入，交給瀏覽器依實際用到的字分段下載
-const notoTC = Noto_Sans_TC({
-  variable: "--font-noto-tc",
-  weight: ["400", "500", "700"],
-  preload: false,
-});
+// 字型：英數用 IBM Plex Sans（工程儀表感、數字清楚），中文用 Noto Sans TC。
+// 刻意不用 next/font/google：它在建置時向 Google 下載字型檔，在 Vercel 上時好時壞會讓建置失敗。
+// 改由瀏覽器在開頁時載入；載不到時會退回系統字型（微軟正黑體），不影響使用。
+const FONT_CSS =
+  "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap";
 
 // 🔥 改這裡
 export const metadata: Metadata = {
@@ -57,10 +42,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hant">
-      <body
-        // font-sans 要寫在這裡：字型變數定義在 body 上，寫在 html 層會解析不到而退回系統字型
-        className={`${plex.variable} ${plexMono.variable} ${notoTC.variable} font-sans antialiased`}
-      >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href={FONT_CSS} />
+      </head>
+      <body className="font-sans antialiased">
         {children}
       </body>
     </html>
