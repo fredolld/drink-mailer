@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import DrinkMailer from "@/components/DrinkMailer";
 import SettleOrder from "@/components/SettleOrder";
+import PendingBanner from "@/components/PendingBanner";
 import { cn } from "@/lib/utils";
 import { CupSoda } from "lucide-react";
 
@@ -48,6 +49,8 @@ export default function Page() {
           <div className="ml-auto hidden items-center text-xs text-white/55 sm:flex">華城電機 資訊中心</div>
         </div>
       </header>
+
+      <PendingBanner onSettle={() => setTab("settle")} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
         {/* 兩個分頁都保持掛載，切換時不會丟失已填的內容 */}

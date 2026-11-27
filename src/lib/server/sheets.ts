@@ -98,6 +98,12 @@ export async function appendRows(sheet: string, range: string, rows: (string | n
   await client().request({ url, method: "POST", data: { values: rows } });
 }
 
+/** 覆寫指定範圍 */
+export async function writeRange(sheet: string, range: string, rows: (string | number)[][]): Promise<void> {
+  const url = `${API}/${spreadsheetId()}/values/${encodeURIComponent(a1(sheet, range))}?valueInputOption=USER_ENTERED`;
+  await client().request({ url, method: "PUT", data: { values: rows } });
+}
+
 /** 取得分頁的數字 ID（插入列需要） */
 async function sheetGid(sheet: string): Promise<number> {
   const url = `${API}/${spreadsheetId()}?fields=sheets.properties(sheetId,title)`;

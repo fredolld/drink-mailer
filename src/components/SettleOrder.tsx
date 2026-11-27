@@ -127,6 +127,8 @@ export default function SettleOrder() {
         setMessage({ text: data.message || "已寫入", ok: true });
         setJson("");
         setForce(false);
+        // 讓頂端的「尚未記帳」提醒列重新比對（事件名稱與 PendingBanner 的 LEDGER_CHANGED 相同）
+        window.dispatchEvent(new Event("drink:ledger-changed"));
       }
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : "處理失敗", ok: false });
